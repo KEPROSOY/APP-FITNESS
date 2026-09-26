@@ -2,7 +2,7 @@ name: Generar APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "principal", "main", "master" ]
 
 jobs:
   build:
