@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Exclude sensitive app preferences and local SQLite database from unencrypted device backup -->
+    <exclude domain="sharedpref" path="."/>
+    <exclude domain="database" path="."/>
+</full-backup-content>

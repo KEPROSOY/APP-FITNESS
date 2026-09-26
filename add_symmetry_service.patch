@@ -1,0 +1,112 @@
+--- app/src/main/java/com/example/service/AiNutritionService.kt
++++ app/src/main/java/com/example/service/AiNutritionService.kt
+@@ -19,6 +19,9 @@
+ import com.example.BuildConfig
+ import com.example.data.model.AiAnalysisResult
+ import com.example.data.model.MealIngredient
++import com.example.data.model.SymmetryResult
++import com.example.data.model.SymmetryRoutineDay
++import com.example.data.model.SymmetryExercise
+ import com.example.data.model.DailySummary
+ import com.example.data.model.UserProfile
+ import kotlinx.coroutines.Dispatchers
+@@ -218,6 +221,99 @@
+     }
+   }
+ 
++  suspend fun analyzeSymmetry(bitmap: Bitmap?): SymmetryResult? = withContext(Dispatchers.IO) {
++    if (bitmap == null) return@withContext null
++    if (apiKey.isEmpty()) return@withContext null
++
++    try {
++      val stream = ByteArrayOutputStream()
++      bitmap.compress(Bitmap.CompressFormat.JPEG, 75, stream)
++      val base64Image = Base64.encodeToString(stream.toByteArray(), Base64.NO_WRAP)
++
++      val prompt = """
++        Eres un experto en fitness e hipertrofia como la app Symmetry.
++        Analiza la fotografía del físico de este usuario.
++        Identifica los grupos musculares más desarrollados (fortalezas) y los más rezagados (debilidades).
++        Genera una rutina de entrenamiento personalizada de 3 días para mejorar la simetría corporal y corregir desbalances.
++        Devuelve EXCLUSIVAMENTE un JSON válido con este formato:
++        {
++          "strengths": ["Pecho", "Hombros"],
++          "weaknesses": ["Brazos", "Piernas"],
++          "routine": [
++            {
++              "day": "Día 1: Enfoque Debilidades",
++              "exercises": [
++                {"name": "Curl de Bíceps", "sets": 4, "reps": "10-12"}
++              ]
++            }
++          ],
++          "advice": "Consejo general para mejorar tu simetría."
++        }
++      """.trimIndent()
++
++      val requestJson = JSONObject().apply {
++        val contentsArray = JSONArray().apply {
++          val contentObj = JSONObject().apply {
++            val partsArray = JSONArray().apply {
++              put(JSONObject().apply { put("text", prompt) })
++              put(JSONObject().apply {
++                put("inlineData", JSONObject().apply {
++                  put("mimeType", "image/jpeg")
++                  put("data", base64Image)
++                })
++              })
++            }
++            put("parts", partsArray)
++          }
++          put(contentObj)
++        }
++        put("contents", contentsArray)
++        put("generationConfig", JSONObject().apply { put("responseMimeType", "application/json") })
++      }
++
++      val requestBody = requestJson.toString().toRequestBody("application/json".toMediaTypeOrNull())
++      val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}"
++      
++      val request = Request.Builder().url(url).post(requestBody).build()
++      val response = okHttpClient.newCall(request).execute()
++      val responseBody = response.body?.string() ?: ""
++      
++      if (response.isSuccessful) {
++        val jsonResponse = JSONObject(responseBody)
++        val textResult = jsonResponse.getJSONArray("candidates")
++          .getJSONObject(0)
++          .getJSONObject("content")
++          .getJSONArray("parts")
++          .getJSONObject(0)
++          .getString("text")
++
++        val cleanJson = textResult.trim().removePrefix("```json").removeSuffix("```").trim()
++        val resultObj = JSONObject(cleanJson)
++
++        val strengths = mutableListOf<String>()
++        val strengthsArray = resultObj.getJSONArray("strengths")
++        for (i in 0 until strengthsArray.length()) strengths.add(strengthsArray.getString(i))
++
++        val weaknesses = mutableListOf<String>()
++        val weaknessesArray = resultObj.getJSONArray("weaknesses")
++        for (i in 0 until weaknessesArray.length()) weaknesses.add(weaknessesArray.getString(i))
++
++        val routine = mutableListOf<SymmetryRoutineDay>()
++        val routineArray = resultObj.getJSONArray("routine")
++        for (i in 0 until routineArray.length()) {
++            val dayObj = routineArray.getJSONObject(i)
++            val exArray = dayObj.getJSONArray("exercises")
++            val exercises = mutableListOf<SymmetryExercise>()
++            for (j in 0 until exArray.length()) {
++                val exObj = exArray.getJSONObject(j)
++                exercises.add(SymmetryExercise(exObj.getString("name"), exObj.getInt("sets"), exObj.getString("reps")))
++            }
++            routine.add(SymmetryRoutineDay(dayObj.getString("day"), exercises))
++        }
++
++        return@withContext SymmetryResult(strengths, weaknesses, routine, resultObj.getString("advice"))
++      }
++    } catch (e: Exception) { e.printStackTrace() }
++    null
++  }
++

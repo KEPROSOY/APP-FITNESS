@@ -1,0 +1,22 @@
+--- app/src/main/java/com/example/data/model/Models.kt
++++ app/src/main/java/com/example/data/model/Models.kt
+@@ -204,4 +204,18 @@
+   val detail: String,
+   val color: Long // Hex color representation
+ )
+ 
++data class SymmetryExercise(
++  val name: String,
++  val sets: Int,
++  val reps: String
++)
++data class SymmetryRoutineDay(
++  val day: String,
++  val exercises: List<SymmetryExercise>
++)
++data class SymmetryResult(
++  val strengths: List<String>,
++  val weaknesses: List<String>,
++  val routine: List<SymmetryRoutineDay>,
++  val advice: String
++)
