@@ -1,0 +1,42 @@
+--- app/src/main/java/com/example/service/AiNutritionService.kt
++++ app/src/main/java/com/example/service/AiNutritionService.kt
+@@ -10,6 +10,7 @@
+ import com.example.data.model.SymmetryResult
+ import com.example.data.model.SymmetryRoutineDay
+ import com.example.data.model.SymmetryExercise
+ import com.example.data.model.UserProfile
+ import kotlinx.coroutines.Dispatchers
+ import kotlinx.coroutines.delay
+ import kotlinx.coroutines.withContext
+ import okhttp3.MediaType.Companion.toMediaType
++import okhttp3.MediaType.Companion.toMediaTypeOrNull
+ import okhttp3.OkHttpClient
+ import okhttp3.Request
+ import okhttp3.RequestBody.Companion.toRequestBody
+@@ -400,10 +401,9 @@
+       ?.optJSONObject("content")
+       ?.optJSONArray("parts")
+       ?.optJSONObject(0)
+       ?.optString("text")
+-  }
+ 
+   suspend fun analyzeSymmetry(bitmap: Bitmap?): SymmetryResult? = withContext(Dispatchers.IO) {
+     if (bitmap == null) return@withContext null
+-    if (apiKey.isEmpty()) return@withContext null
++    if (BuildConfig.GEMINI_API_KEY.isEmpty()) return@withContext null
+ 
+     try {
+@@ -457,7 +457,7 @@
+       }
+ 
+       val requestBody = requestJson.toString().toRequestBody("application/json".toMediaTypeOrNull())
+-      val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}"
++      val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${BuildConfig.GEMINI_API_KEY}"
+       
+       val request = Request.Builder().url(url).post(requestBody).build()
+       val response = okHttpClient.newCall(request).execute()
+@@ -501,4 +501,5 @@
+     } catch (e: Exception) { e.printStackTrace() }
+     null
+   }
++}

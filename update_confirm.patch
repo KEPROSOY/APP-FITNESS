@@ -1,0 +1,30 @@
+--- app/src/main/java/com/example/viewmodel/NutriViewModel.kt
++++ app/src/main/java/com/example/viewmodel/NutriViewModel.kt
+@@ -448,11 +448,25 @@
+     val current = aiScanResult.value ?: return
+     if (current.detectedIngredients.isEmpty()) return
+ 
++    var savedImageUrl: String? = null
++    capturedMealBitmap.value?.let { bmp ->
++        try {
++            val file = java.io.File(getApplication<android.app.Application>().filesDir, "meal_${System.currentTimeMillis()}.jpg")
++            val out = java.io.FileOutputStream(file)
++            bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
++            out.flush()
++            out.close()
++            savedImageUrl = file.absolutePath
++        } catch (e: Exception) {
++            e.printStackTrace()
++        }
++    }
++
+     logMeal(
+       mealType = mealType,
+       ingredients = current.detectedIngredients,
+-      imageUrl = null
++      imageUrl = savedImageUrl
+     )
+     aiScanResult.value = null
++    capturedMealBitmap.value = null
+   }
+ 

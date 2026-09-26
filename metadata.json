@@ -1,0 +1,6 @@
+{
+  "name": "SYVRA",
+  "description": "Tu asistente de nutrición y fitness con IA, registro de calorías, macros, cargas de gimnasio, cálculo 1RM, simetría muscular y balance energético.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
